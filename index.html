@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.socket.io/4.8.0/socket.io.min.js" integrity="sha384-OoIbkvzsFFQAG88r+IqMAjyOtYDPGO0cqK5HF5Uosdy/zUEGySeAzytENMDynREd" crossorigin="anonymous"></script>
+</script>
+<script>
+	class p {
+	  constructor() {
+	    
+	  }
+	  
+	  ping(){
+	    this.socket.emit('proxy_ping');
+	    console.log('proxy_ping');
+	  }
+
+	  c() {
+	    var t=this;
+	    console.log('connecting to relay');
+	    this.socket = io();
+
+	    this.socket.on('request', (message) =>
+	      {
+	        this.request(t, t.socket, message);
+	      }
+	      );
+
+	    this.socket.emit('proxy_connect');
+
+	    setInterval(function(){t.ping();}, 1000);
+	  }
+
+	  response(request_uuid, request_url, content){
+	    console.log('request_uuid:',request_uuid);
+	    console.log('request_url:',request_url);
+	    console.log('content:', content);
+	    console.log('this:', this);
+	    console.log('---');
+
+	    var data={request_uuid: request_uuid, request_url, content: content}
+
+	    this.socket.emit('proxy_response', data)
+
+	  }
+
+	  request(t, socket, message) {
+	    console.log(message);
+
+	    function reqListener(resp) {
+	      t.response(message.request_uuid, message.request_url, JSON.parse(resp.target.responseText)['contents'])
+	    }
+
+	    const req = new XMLHttpRequest();
+	    req.addEventListener("load", reqListener);
+	    req.open("GET", `https://api.allorigins.win/get?url=${encodeURIComponent(message.request_url)}`);
+	    req.send();
+
+	  }
+	}
+	let P=new p();
+	P.c();
+</script>
+</head>
+<body>
+</body>
+</html>
